@@ -1,0 +1,487 @@
+/* ==========================================================================
+   POSIŁKI – radio → kompaktowe dropdowny (Material 3 / shadcn)
+   CSS-only, bez zmian w HTML. Wstrzyknij na końcu <head> / przez Stylus.
+
+   JAK TO DZIAŁA
+   • Poziom 1 (dzień)  → karta z nagłówkiem + dwa „chipy” (Będzie / Nie będzie).
+   • Poziom 2 (posiłek) → płaska sekcja z etykietą i listą-dropdownem:
+       zamknięty = widać tylko wybraną opcję + chevron,
+       otwarty   = :hover (mysz / tap na dotyku) lub fokus klawiaturą.
+   • Wybrana opcja jest zawsze pierwsza (order:-1), więc „trigger” nie skacze.
+   • Natywne kropki radio są ukryte, ale dalej fokusowalne (dostępność).
+   • Cały wiersz (z opisem) jest klikalny – label::after rozciągnięty na wiersz.
+
+   O !important: arkusze strony (questionnaire_answering.css, tdefaut.css,
+   box.css) mają nieznaną specyficzność, a część stylów jest inline
+   (np. style="color:red"). Dlatego deklaracje na istniejących elementach mają
+   !important; reset „spłaszczający” ma specyficzność 0 (:where), więc
+   komponenty poniżej zawsze go nadpisują.
+   ========================================================================== */
+
+:root {
+  /* paleta */
+  --of-accent:        #1976d2;
+  --of-accent-tint:   rgba(25, 118, 210, .08);   /* tło wybranej opcji   */
+  --of-hover:         rgba(25, 118, 210, .05);   /* hover wiersza        */
+  --of-press:         rgba(25, 118, 210, .12);   /* :active wiersza      */
+  --of-surface:       #ffffff;
+  --of-border:        #e2e8f0;                   /* obramowanie karty    */
+  --of-divider:       #eef2f6;                   /* linie między wierszami */
+  --of-text:          #0f172a;
+  --of-muted:         #64748b;
+  --of-error:         #b3261e;
+
+  /* kształt / rytm */
+  --of-radius:        12px;
+  --of-radius-chip:   8px;
+  --of-pad-x:         16px;
+  --of-pad-y:         12px;
+  --of-gutter-l:      48px;      /* miejsce na check po lewej            */
+  --of-gutter-r:      44px;      /* miejsce na chevron po prawej         */
+  --of-touch:         48px;      /* min. wysokość celu dotyku (≥44px)    */
+  --of-shadow:        0 1px 2px rgba(15, 23, 42, .06),
+                      0 4px 12px rgba(15, 23, 42, .06);   /* tylko karta */
+
+  /* ruch */
+  --of-dur:           .22s;
+  --of-ease:          cubic-bezier(.2, 0, 0, 1);          /* M3 emphasized */
+  --of-open-delay:    .08s;      /* „hover intent” – mniej migotania     */
+  --of-close-delay:   .18s;
+  --of-desc-lines:    2;         /* ile linii opisu w wierszu            */
+}
+
+/* ==========================================================================
+   0. SPŁASZCZENIE – usuwa „box in a box” z arkuszy strony
+   (specyficzność 0 dzięki :where, siła dzięki !important)
+   ========================================================================== */
+:where(.questionnaire_answering) :where(
+  .questionnaire_groups, .questionnaire_group, .questionnaire_options,
+  .questionnaire_option, .option_header, .option_header > .title,
+  .questionnaire_group > .title, .description, .price, .locked_reasons
+) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  float: none !important;
+  width: auto !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+/* ==========================================================================
+   1. KARTA DNIA  (.depending_on_0 > .questionnaire_group)
+   ========================================================================== */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group {
+  background: var(--of-surface) !important;
+  border: 1px solid var(--of-border) !important;
+  border-radius: var(--of-radius) !important;
+  box-shadow: var(--of-shadow) !important;       /* jedyny cień w komponencie */
+  overflow: hidden !important;                   /* przycina hover do rogów   */
+  margin: 0 0 16px !important;
+  font-family: "Open Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+  color: var(--of-text) !important;
+}
+
+/* nagłówek karty = data */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .title {
+  padding: 16px var(--of-pad-x) 4px !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .title > h2 {
+  margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important;
+  font: 600 1.125rem/1.35 "Open Sans", system-ui, sans-serif !important;
+  color: var(--of-text) !important;
+  text-transform: none !important;
+  text-wrap: balance;
+}
+
+/* komunikaty walidacji: zero wysokości, gdy puste; kolor ujednolicony
+   (nadpisuje inline style="color:red") */
+.questionnaire_contents .questionnaire_answering .group_remarks {
+  padding: 0 var(--of-pad-x) !important;
+  margin: 0 !important;
+  font-size: .8125rem !important;
+  line-height: 1.4 !important;
+  color: var(--of-error) !important;
+}
+
+/* ==========================================================================
+   2. POZIOM 1 – „CHIPY” Będzie / Nie będzie w przedszkolu
+   Opcja dnia zawiera zagnieżdżone posiłki, więc używamy display:contents:
+   header’y stają się elementami siatki, a posiłki rozciągają się na całość.
+   ========================================================================== */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+  gap: 8px !important;
+  padding: 8px var(--of-pad-x) 12px !important;
+  align-items: stretch !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option {
+  display: contents !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header {
+  order: 1 !important;
+  position: relative !important;                 /* kotwica dla label::after */
+  display: flex !important;
+  border: 1px solid var(--of-border) !important;
+  border-radius: var(--of-radius-chip) !important;
+  background: var(--of-surface) !important;
+  transition: background-color var(--of-dur) var(--of-ease),
+              border-color var(--of-dur) var(--of-ease) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header > .title {
+  display: flex !important; align-items: center !important; flex: 1 !important;
+  padding: 0 !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header label {
+  flex: 1 !important;
+  min-height: var(--of-touch) !important;
+  display: flex !important; align-items: center !important;
+  padding: 10px 14px 10px 44px !important;
+  font: 500 .875rem/1.35 "Open Sans", system-ui, sans-serif !important;
+  color: var(--of-text) !important;
+  cursor: pointer !important;
+  text-wrap: balance;
+}
+/* nieklikalny „ghost” hit-area nie jest potrzebny – label wypełnia chip */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header label::after {
+  content: none !important;
+}
+/* ikona check w chipie (rysowana borderami) */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header label::before {
+  content: "" !important;
+  position: absolute !important; left: 18px !important; top: 50% !important;
+  width: 5px !important; height: 10px !important;
+  border: solid var(--of-accent) !important; border-width: 0 2px 2px 0 !important;
+  transform: translateY(-65%) rotate(45deg) scale(0) !important;
+  transition: transform var(--of-dur) var(--of-ease) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header:has(input:checked) {
+  background: var(--of-accent-tint) !important;
+  border-color: var(--of-accent) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header:has(input:checked) label {
+  color: var(--of-accent) !important; font-weight: 600 !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header:has(input:checked) label::before {
+  transform: translateY(-65%) rotate(45deg) scale(1) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header:not(:has(input:disabled)):hover {
+  background: var(--of-hover) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header:not(:has(input:disabled)):active {
+  background: var(--of-press) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header:has(input:focus-visible) {
+  outline: 2px solid var(--of-accent) !important; outline-offset: 2px !important;
+}
+/* zablokowany chip: przygaszony, powód ukryty (informacja i tak jest przy posiłkach) */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header:has(input:disabled) {
+  opacity: .62 !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header:has(input:disabled) label {
+  cursor: not-allowed !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .option_header .locked_reasons {
+  display: none !important;
+}
+/* zagnieżdżone posiłki: pełna szerokość, „full-bleed” do krawędzi karty */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .questionnaire_options > .questionnaire_option > .questionnaire_groups {
+  order: 2 !important;
+  grid-column: 1 / -1 !important;
+  margin: 4px calc(var(--of-pad-x) * -1) -12px !important;
+}
+
+/* ==========================================================================
+   3. POZIOM 2 – POSIŁKI jako płaskie sekcje (etykieta + dropdown)
+   ========================================================================== */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups > .questionnaire_group {
+  border-top: 1px solid var(--of-divider) !important;
+}
+/* etykieta pola = h2 grupy */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups > .questionnaire_group > .title {
+  padding: 14px var(--of-pad-x) 2px !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups > .questionnaire_group > .title > h2 {
+  margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important;
+  font: 600 .75rem/1.4 "Open Sans", system-ui, sans-serif !important;
+  letter-spacing: .02em !important;
+  color: var(--of-muted) !important;
+  text-transform: none !important;
+}
+
+/* ==========================================================================
+   4. DROPDOWN – kontener i wiersze (tylko zagnieżdżone grupy posiłków;
+      poziom dnia to chipy z sekcji 2)
+   ========================================================================== */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 0 4px !important;
+}
+
+/* wiersz = opcja */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option {
+  position: relative !important;
+  display: block !important;
+  overflow: hidden !important;                   /* potrzebne do animacji max-height */
+  max-height: 22rem !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: max-height var(--of-dur) var(--of-ease) var(--of-open-delay),
+              opacity calc(var(--of-dur) * .8) var(--of-ease) var(--of-open-delay),
+              visibility 0s linear 0s,
+              background-color .15s ease !important;
+  cursor: pointer !important;
+}
+/* wybrana opcja zawsze na górze = stabilny „trigger” */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option:has(> .option_header input:checked) {
+  order: -1 !important;
+}
+/* cienka linia nad wierszem (pseudo-element, nie zajmuje miejsca przy zwinięciu) */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option::before {
+  content: "" !important;
+  position: absolute !important; left: var(--of-pad-x) !important; right: var(--of-pad-x) !important; top: 0 !important;
+  height: 1px !important; background: var(--of-divider) !important;
+  width: auto !important; margin: 0 !important; border: 0 !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option:has(> .option_header input:checked)::before {
+  content: none !important;
+}
+
+/* ---- ZWINIĘCIE: jest wybór, brak hover/fokusu klawiaturą → chowamy resztę ---- */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option > .option_header input:checked):not(:hover):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: max-height var(--of-dur) var(--of-ease) var(--of-close-delay),
+              opacity calc(var(--of-dur) * .6) var(--of-ease) var(--of-close-delay),
+              visibility 0s linear calc(var(--of-dur) + var(--of-close-delay)) !important;
+}
+
+/* ---- nagłówek wiersza: [check] etykieta ......... cena [chevron] ---- */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option > .option_header > .title {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  column-gap: 12px !important;
+  align-items: center !important;
+  padding: var(--of-pad-y) var(--of-gutter-r) var(--of-pad-y) var(--of-gutter-l) !important;
+}
+/* cel dotyku ≥ 44px dla wierszy bez opisu (z opisem wiersz i tak jest wyższy) */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option > .option_header > .title:not(:has(+ .description)) {
+  min-height: var(--of-touch) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option > .option_header label {
+  grid-column: 1 !important; grid-row: 1 !important;
+  display: block !important;
+  font: 500 .9375rem/1.4 "Open Sans", system-ui, sans-serif !important;
+  color: var(--of-text) !important;
+  cursor: pointer !important;
+  margin: 0 !important; padding: 0 !important;
+  overflow-wrap: anywhere;
+}
+/* hit-area całego wiersza (łącznie z opisem) */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option > .option_header label::after {
+  content: "" !important;
+  position: absolute !important; inset: 0 !important; z-index: 1 !important;
+  display: block !important; background: none !important; border: 0 !important; clear: none !important;
+}
+/* cena: ukrywamy tekst „Cena za sztukę:” (font-size:0), zostaje sama kwota */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option .price {
+  grid-column: 2 !important; grid-row: 1 !important;
+  font-size: 0 !important; line-height: 0 !important;
+  white-space: nowrap !important;
+  text-align: right !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option .price .separator {
+  display: none !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option .option_price_per_unit {
+  font: 600 .8125rem/1.4 "Open Sans", system-ui, sans-serif !important;
+  font-variant-numeric: tabular-nums !important;
+  color: var(--of-muted) !important;
+}
+/* natywne radio: ukryte wizualnie, ale fokusowalne (klawiatura / czytniki) */
+.questionnaire_contents .questionnaire_answering .questionnaire_option input.answer_option {
+  -webkit-appearance: none !important; appearance: none !important;
+  position: absolute !important; left: 0 !important; top: 0 !important;
+  width: 1px !important; height: 1px !important;
+  margin: 0 !important; padding: 0 !important; border: 0 !important;
+  opacity: 0 !important; pointer-events: none !important;
+}
+/* opis: mały, przygaszony, przycięty */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option > .option_header > .description {
+  padding: 0 var(--of-gutter-r) 0 var(--of-gutter-l) !important;   /* bez padding-bottom: line-clamp */
+  margin: -4px 0 var(--of-pad-y) !important;
+  font: 400 .8125rem/1.45 "Open Sans", system-ui, sans-serif !important;
+  color: var(--of-muted) !important;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: var(--of-desc-lines) !important;
+  line-clamp: var(--of-desc-lines) !important;
+  overflow: hidden !important;
+}
+
+/* ---- check przy wybranym (widoczny po otwarciu) ---- */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option > .option_header label::before {
+  content: "" !important;
+  position: absolute !important; left: 20px !important; top: 22px !important;
+  width: 5px !important; height: 10px !important;
+  border: solid var(--of-accent) !important; border-width: 0 2px 2px 0 !important;
+  transform: translateY(-65%) rotate(45deg) scale(0) !important;
+  transition: transform var(--of-dur) var(--of-ease) !important;
+  background: none !important;
+}
+/* chevron po prawej – tylko na wybranym wierszu (trigger) */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option > .option_header::after {
+  content: none !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option:has(> .option_header input:checked:not(:disabled)) > .option_header::after {
+  content: "" !important;
+  position: absolute !important; right: 20px !important; top: 21px !important;
+  width: 7px !important; height: 7px !important;
+  border: solid var(--of-muted) !important; border-width: 0 2px 2px 0 !important;
+  transform: rotate(45deg) !important;
+  transition: transform var(--of-dur) var(--of-ease), border-color .15s ease !important;
+  clear: none !important; display: block !important; background: none !important;
+}
+
+/* ---- STAN OTWARTY: wybrany wiersz = tło + check, chevron odwrócony ---- */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:is(:hover, :has(input:focus-visible)) > .questionnaire_option:has(> .option_header input:checked) {
+  background-color: var(--of-accent-tint) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:is(:hover, :has(input:focus-visible)) > .questionnaire_option:has(> .option_header input:checked) > .option_header label {
+  color: var(--of-accent) !important; font-weight: 600 !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:is(:hover, :has(input:focus-visible)) > .questionnaire_option:has(> .option_header input:checked) > .option_header label::before {
+  transform: translateY(-65%) rotate(45deg) scale(1) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:is(:hover, :has(input:focus-visible)) > .questionnaire_option:has(> .option_header input:checked:not(:disabled)) > .option_header::after {
+  transform: translateY(3px) rotate(-135deg) !important;
+  border-color: var(--of-accent) !important;
+}
+
+/* ---- micro-interactions ---- */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option:not(:has(> .option_header input:disabled)):hover {
+  background-color: var(--of-hover) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option:not(:has(> .option_header input:disabled)):active {
+  background-color: var(--of-press) !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:is(:hover, :has(input:focus-visible)) > .questionnaire_option:has(> .option_header input:checked):hover {
+  background-color: var(--of-press) !important;
+}
+/* focus klawiatury: wewnętrzny outline (bez cienia) */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option:has(> .option_header input:focus-visible) {
+  outline: 2px solid var(--of-accent) !important;
+  outline-offset: -2px !important;
+}
+
+/* ==========================================================================
+   5. STANY ZABLOKOWANE (locked / disabled)
+   ========================================================================== */
+/* pojedyncza zablokowana opcja w otwartej liście */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option:has(> .option_header input:disabled) {
+  cursor: not-allowed !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option:has(> .option_header input:disabled) > .option_header label {
+  color: var(--of-muted) !important; cursor: not-allowed !important;
+}
+/* powód blokady: tylko w „pełni zablokowanym” polu, tylko na wybranym wierszu */
+.questionnaire_contents .questionnaire_answering .locked_reasons {
+  display: none !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:has(> .questionnaire_option:not(.locked))) > .questionnaire_option:has(> .option_header input:checked) .locked_reasons {
+  display: block !important;
+  grid-column: 1 / -1 !important; grid-row: 2 !important;
+  margin-top: 4px !important;
+  font: 400 .75rem/1.4 "Open Sans", system-ui, sans-serif !important;
+  color: var(--of-muted) !important;
+  position: static !important; opacity: 1 !important; visibility: visible !important;
+}
+.questionnaire_contents .questionnaire_answering .locked_reasons ul,
+.questionnaire_contents .questionnaire_answering .locked_reasons li {
+  display: inline !important; list-style: none !important; margin: 0 !important; padding: 0 !important;
+}
+/* pole całkowicie zablokowane = tylko do odczytu: bez hover, bez chevrona, przygaszone */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:has(> .questionnaire_option:not(.locked))) > .questionnaire_option {
+  cursor: default !important;
+  background-color: transparent !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:has(> .questionnaire_option:not(.locked))) > .questionnaire_option > .option_header::after,
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:has(> .questionnaire_option:not(.locked))) > .questionnaire_option::before {
+  content: none !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:has(> .questionnaire_option:not(.locked))) > .questionnaire_option:has(> .option_header input:checked) > .option_header label {
+  color: var(--of-muted) !important; font-weight: 500 !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:has(> .questionnaire_option:not(.locked))) > .questionnaire_option:has(> .option_header input:checked) > .option_header label::before {
+  border-color: var(--of-muted) !important;
+  transform: translateY(-65%) rotate(45deg) scale(1) !important;   /* check widoczny jako „zapisany wybór” */
+}
+/* pole tylko do odczytu nigdy się nie rozwija */
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:has(> .questionnaire_option:not(.locked))):hover > .questionnaire_option:not(:has(> .option_header input:checked)) {
+  max-height: 0 !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;
+}
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:has(> .questionnaire_option:not(.locked))) > .questionnaire_option:has(> .option_header input:checked) {
+  background-color: transparent !important;
+}
+
+/* ==========================================================================
+   6. OPCJONALNIE – nawigacja dni i pasek zapisu (spójność z kartą)
+   Usuń ten blok, jeśli chcesz zostawić oryginalne przyciski strony.
+   ========================================================================== */
+.questionnaire_contents .questionnaire_answering .day_by_day .button,
+.questionnaire_contents .questionnaire_answering .submit_box .day_by_day .button {
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  min-height: var(--of-touch) !important; padding: 0 20px !important;
+  border: 1px solid var(--of-border) !important; border-radius: 999px !important;
+  background: var(--of-surface) !important; box-shadow: none !important;
+  color: var(--of-accent) !important;
+  font: 600 .875rem/1 "Open Sans", system-ui, sans-serif !important;
+  cursor: pointer !important; user-select: none !important;
+  transition: background-color .15s ease !important;
+}
+.questionnaire_contents .questionnaire_answering .day_by_day .button:hover { background: var(--of-hover) !important; }
+.questionnaire_contents .questionnaire_answering .day_by_day .button:active { background: var(--of-press) !important; }
+.questionnaire_contents .questionnaire_answering .submit_box .submit input.form_submit {
+  min-height: var(--of-touch) !important; padding: 0 28px !important;
+  border: 0 !important; border-radius: 999px !important;
+  background: var(--of-accent) !important; color: #fff !important; box-shadow: none !important;
+  font: 600 .9375rem/1 "Open Sans", system-ui, sans-serif !important;
+  cursor: pointer !important;
+  transition: filter .15s ease !important;
+}
+.questionnaire_contents .questionnaire_answering .submit_box .submit input.form_submit:hover { filter: brightness(1.08) !important; }
+
+/* ==========================================================================
+   7. RESPONSYWNOŚĆ I DOSTĘPNOŚĆ
+   ========================================================================== */
+@media (max-width: 480px) {
+  :root { --of-pad-x: 14px; --of-gutter-l: 44px; --of-gutter-r: 40px; }
+  .questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option > .option_header label::before { left: 18px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .questionnaire_contents .questionnaire_answering * ,
+  .questionnaire_contents .questionnaire_answering *::before,
+  .questionnaire_contents .questionnaire_answering *::after {
+    transition-duration: 0s !important; transition-delay: 0s !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   OPCJONALNY FALLBACK (odkomentuj, jeśli na iOS Safari tap nie otwiera listy):
+   na urządzeniach bez hovera listy zawsze rozwinięte (nadal zwarte, 48px).
+
+   @media (hover: none) {
+     .questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option {
+       max-height: 22rem !important; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important;
+     }
+   }
+   -------------------------------------------------------------------------- */
