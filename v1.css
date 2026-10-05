@@ -43,14 +43,14 @@
   --of-gap:           12px;
 
   /* typografia – jedyne miejsce do zmiany rozmiarów tekstu */
-  --of-fs-title:      clamp(1.05rem, 2.5vw, 1.25rem);   /* data na karcie                       */
-  --of-fs-chip:       clamp(0.9rem, 2vw, 1rem);      /* Będzie / Nie będzie                  */
-  --of-fs-label:      clamp(0.9rem, 2vw, 1rem);      /* nazwa opcji                          */
-  --of-fs-price:      clamp(0.9rem, 2vw, 1rem);  /* cena                                 */
-  --of-fs-desc:       clamp(0.8rem, 1.6vw, 0.875rem);   /* opis opcji (skład, kcal)             */
-  --of-fs-field:      .8125rem;  /* etykieta pola („Wybierz zupę…”)      */
-  --of-fs-small:      .8125rem;  /* komunikaty, powód blokady            */
-  --of-fs-button:     1rem;      /* przyciski                            */
+  --of-fs-title:      2rem;   /* data na karcie                       */
+  --of-fs-chip:       2rem;      /* Będzie / Nie będzie                  */
+  --of-fs-label:      2rem;      /* nazwa opcji                          */
+  --of-fs-price:      2rem;  /* cena                                 */
+  --of-fs-desc:       1.8rem;   /* opis opcji (skład, kcal)             */
+  --of-fs-field:      1.8rem;  /* etykieta pola („Wybierz zupę…”)      */
+  --of-fs-small:      1rem;  /* komunikaty, powód blokady            */
+  --of-fs-button:     2rem;      /* przyciski                            */
   --of-row-max:       12rem;     /* max wysokość wiersza (animacja)      */
   --of-desc-lines:    2;         /* ile linii opisu opcji                */      /* odstęp między kolumnami wiersza      */
   --of-touch:         48px;      /* min. wysokość celu dotyku (≥44px)    */
