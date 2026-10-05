@@ -422,7 +422,7 @@
 }
 .questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:has(> .questionnaire_option:not(.locked))) > .questionnaire_option:has(> .option_header input:checked) > .option_header label::before {
   border-color: var(--of-muted) !important;
-  transform: translateY(-65%) rotate(45deg) scale(1) !important;   /* check widoczny jako „zapisany wybór” */
+  translateY(-150%) translateX(-600%) rotate(45deg) scale(1) !important   /* check widoczny jako „zapisany wybór” */
 }
 /* pole tylko do odczytu nigdy się nie rozwija */
 .questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:has(> .questionnaire_option:not(.locked))):hover > .questionnaire_option:not(:has(> .option_header input:checked)) {
@@ -485,3 +485,4 @@
      }
    }
    -------------------------------------------------------------------------- */
+   .description { display: none;}
