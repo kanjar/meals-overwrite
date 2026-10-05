@@ -41,6 +41,17 @@
   --of-pad-y:         12px;
   --of-icon:          18px;      /* rozmiar check / chevron              */
   --of-gap:           12px;
+
+  /* typografia – jedyne miejsce do zmiany rozmiarów tekstu */
+  --of-fs-title:      clamp(1.05rem, 2.5vw, 1.25rem);   /* data na karcie                       */
+  --of-fs-chip:       clamp(0.9rem, 2vw, 1rem);      /* Będzie / Nie będzie                  */
+  --of-fs-label:      clamp(0.9rem, 2vw, 1rem);      /* nazwa opcji                          */
+  --of-fs-price:      clamp(0.9rem, 2vw, 1rem);  /* cena                                 */
+  --of-fs-desc:       clamp(0.8rem, 1.6vw, 0.875rem);   /* opis opcji (skład, kcal)             */
+  --of-fs-field:      .8125rem;  /* etykieta pola („Wybierz zupę…”)      */
+  --of-fs-small:      .8125rem;  /* komunikaty, powód blokady            */
+  --of-fs-button:     1rem;      /* przyciski                            */
+  --of-row-max:       12rem;     /* max wysokość wiersza (animacja)      */
   --of-desc-lines:    2;         /* ile linii opisu opcji                */      /* odstęp między kolumnami wiersza      */
   --of-touch:         48px;      /* min. wysokość celu dotyku (≥44px)    */
   --of-shadow:        0 1px 2px rgba(15, 23, 42, .06),
@@ -78,6 +89,21 @@
   height: auto !important;
 }
 
+body, html {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.pagewidth, #content-main, #main-full {
+  width: 100% !important;
+  max-width: 900px !important;
+  margin: 0 auto !important;
+  padding: 8px !important;
+  box-sizing: border-box !important;
+}
+
 /* ==========================================================================
    1. KARTA DNIA  (.depending_on_0 > .questionnaire_group)
    ========================================================================== */
@@ -98,7 +124,7 @@
 }
 .questionnaire_contents .questionnaire_answering .questionnaire_groups.depending_on_0 > .questionnaire_group > .title > h2 {
   margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important;
-  font: 600 1.125rem/1.35 "Open Sans", system-ui, sans-serif !important;
+  font: 600 var(--of-fs-title)/1.3 "Open Sans", system-ui, sans-serif !important;
   color: var(--of-text) !important;
   text-transform: none !important;
   text-wrap: balance;
@@ -109,7 +135,7 @@
 .questionnaire_contents .questionnaire_answering .group_remarks {
   padding: 0 var(--of-pad-x) !important;
   margin: 0 !important;
-  font-size: .8125rem !important;
+  font-size: var(--of-fs-small) !important;
   line-height: 1.4 !important;
   color: var(--of-error) !important;
 }
@@ -165,7 +191,7 @@
   min-height: var(--of-touch) !important;
   display: flex !important; align-items: center !important;
   padding: 10px 0 !important;
-  font: 500 .875rem/1.35 "Open Sans", system-ui, sans-serif !important;
+  font: 500 var(--of-fs-chip)/1.35 "Open Sans", system-ui, sans-serif !important;
   color: var(--of-text) !important;
   cursor: pointer !important;
   text-wrap: balance;
@@ -203,6 +229,13 @@
   margin: 4px calc(var(--of-pad-x) * -1) -12px !important;
 }
 
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option:active ~ .questionnaire_option:not(:has(input:checked)),
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:not(:hover):not(:focus-within) > .questionnaire_option:not(:has(input:checked)) {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
 /* ==========================================================================
    3. POZIOM 2 – POSIŁKI jako płaskie sekcje (etykieta + dropdown)
    ========================================================================== */
@@ -215,7 +248,7 @@
 }
 .questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups > .questionnaire_group > .title > h2 {
   margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important;
-  font: 600 .75rem/1.4 "Open Sans", system-ui, sans-serif !important;
+  font: 600 var(--of-fs-field)/1.4 "Open Sans", system-ui, sans-serif !important;
   letter-spacing: .02em !important;
   color: var(--of-muted) !important;
   text-transform: none !important;
@@ -236,9 +269,9 @@
   position: relative !important;
   display: block !important;
   overflow: hidden !important;                   /* potrzebne do animacji max-height */
-  max-height: 22rem !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+  max-height: var(--of-row-max);                 /* celowo bez !important – patrz sekcja 4a */
+  opacity: 1;
+  visibility: visible;
   transition: max-height var(--of-dur) var(--of-ease) var(--of-open-delay),
               opacity calc(var(--of-dur) * .8) var(--of-ease) var(--of-open-delay),
               visibility 0s linear 0s,
@@ -262,14 +295,51 @@
 
 /* ---- ZWINIĘCIE: jest wybór, brak hover/fokusu klawiaturą → chowamy resztę ---- */
 .questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option > .option_header input:checked):not(:hover):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) {
-  max-height: 0 !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
+  max-height: 0;
+  opacity: 0;
+  visibility: hidden;
   pointer-events: none !important;
   transition: max-height var(--of-dur) var(--of-ease) var(--of-close-delay),
               opacity calc(var(--of-dur) * .6) var(--of-ease) var(--of-close-delay),
               visibility 0s linear calc(var(--of-dur) + var(--of-close-delay)) !important;
 }
+
+/* ---- 4a. ZWIJANIE PO WYBORZE (CSS-only) ----------------------------------
+   CSS nie ma zdarzenia „zmieniono wybór”, więc używamy sztuczki:
+   animation-name zależy od INDEKSU zaznaczonej opcji (nth-child). Gdy wybór
+   przeskakuje z opcji 3 na 5, nazwa animacji się zmienia → animacja startuje
+   od nowa i na ~{--of-pick-dur} zwija pozostałe wiersze, nawet gdy kursor
+   dalej jest nad listą. Po zwinięciu kontener jest niższy, więc kursor
+   zwykle ląduje poza nim i hover już nie otwiera listy z powrotem.
+   Nie działa przy nawigacji klawiaturą (:focus-visible) – tam lista ma
+   zostać otwarta na czas strzałek. Obsługuje grupy do 12 opcji
+   (więcej? dopisz kolejne @keyframes of-pick-N i regułę poniżej).
+   ------------------------------------------------------------------------ */
+:root { --of-pick-dur: .55s; }
+@keyframes of-pick-1 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-2 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-3 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-4 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-5 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-6 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-7 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-8 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-9 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-10 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-11 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+@keyframes of-pick-12 { 0% { max-height: var(--of-row-max); opacity: 1; visibility: visible; } 40% { max-height: 0; opacity: 0; visibility: visible; } 41%, 100% { max-height: 0; opacity: 0; visibility: hidden; } }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(1) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-1 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(2) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-2 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(3) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-3 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(4) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-4 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(5) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-5 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(6) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-6 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(7) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-7 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(8) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-8 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(9) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-9 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(10) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-10 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(11) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-11 var(--of-pick-dur) var(--of-ease) 1; }
+.questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio:has(> .questionnaire_option:nth-child(12) > .option_header input:checked):not(:has(input:focus-visible)) > .questionnaire_option:not(:has(> .option_header input:checked)) { animation: of-pick-12 var(--of-pick-dur) var(--of-ease) 1; }
 
 /* ---- nagłówek wiersza: [check] etykieta ......... cena [chevron] ---- */
 .questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option > .option_header > .title {
@@ -283,7 +353,7 @@
 .questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option > .option_header label {
   grid-column: 2 !important; grid-row: 1 !important;
   display: block !important;
-  font: 500 .9375rem/1.4 "Open Sans", system-ui, sans-serif !important;
+  font: 500 var(--of-fs-label)/1.4 "Open Sans", system-ui, sans-serif !important;
   color: var(--of-text) !important;
   cursor: pointer !important;
   margin: 0 !important; padding: 0 !important;
@@ -306,7 +376,7 @@
   display: none !important;
 }
 .questionnaire_contents .questionnaire_answering .questionnaire_groups .questionnaire_groups .questionnaire_options.radio > .questionnaire_option .option_price_per_unit {
-  font: 600 .8125rem/1.4 "Open Sans", system-ui, sans-serif !important;
+  font: 600 var(--of-fs-price)/1.4 "Open Sans", system-ui, sans-serif !important;
   font-variant-numeric: tabular-nums !important;
   color: var(--of-muted) !important;
 }
@@ -376,7 +446,7 @@
   overflow: hidden !important;
   padding: 0 var(--of-pad-x) 0 calc(var(--of-pad-x) + var(--of-icon) + var(--of-gap)) !important;
   margin: 2px 0 var(--of-pad-y) !important;
-  font: 400 .8125rem/1.45 "Open Sans", system-ui, sans-serif !important;
+  font: 400 var(--of-fs-desc)/1.45 "Open Sans", system-ui, sans-serif !important;
   color: var(--of-muted) !important;
 }
 
@@ -427,7 +497,7 @@
   display: block !important;
   grid-column: 2 / -1 !important; grid-row: 2 !important;
   margin-top: 4px !important;
-  font: 400 .75rem/1.4 "Open Sans", system-ui, sans-serif !important;
+  font: 400 var(--of-fs-small)/1.4 "Open Sans", system-ui, sans-serif !important;
   color: var(--of-muted) !important;
   position: static !important; opacity: 1 !important; visibility: visible !important;
 }
@@ -462,7 +532,7 @@
   border: 1px solid var(--of-border) !important; border-radius: 999px !important;
   background: var(--of-surface) !important; box-shadow: none !important;
   color: var(--of-accent) !important;
-  font: 600 .875rem/1 "Open Sans", system-ui, sans-serif !important;
+  font: 600 var(--of-fs-button)/1 "Open Sans", system-ui, sans-serif !important;
   cursor: pointer !important; user-select: none !important;
   transition: background-color .15s ease !important;
 }
@@ -472,7 +542,7 @@
   min-height: var(--of-touch) !important; padding: 0 28px !important;
   border: 0 !important; border-radius: 999px !important;
   background: var(--of-accent) !important; color: #fff !important; box-shadow: none !important;
-  font: 600 .9375rem/1 "Open Sans", system-ui, sans-serif !important;
+  font: 600 var(--of-fs-button)/1 "Open Sans", system-ui, sans-serif !important;
   cursor: pointer !important;
   transition: filter .15s ease !important;
 }
